@@ -1,0 +1,62 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+@inject SevenTVInfoService info
+
+<PageTitle>Converter 7tv emote to tg sticker</PageTitle>
+
+<div class="container">
+    <div class="header" style="text-align: center">
+        <h3>Converter 7tv emote to tg sticker</h3>
+    </div>
+    <div class="block">
+        <div class="filter-grid">
+            <div class="form-group">
+                <input type="text" id="search_login" name="search_login" placeholder="Search..."
+                       @oninput="@OnChangeHandlerAsync">
+                </div>
+            </div>
+            @if (IsLoading)
+            {
+                <div style="display: flex; justify-content: center;">
+                    <span class="loader-xl"></span>
+                </div>
+            }
+            else
+            {
+                <ul class="list-user">
+                    @foreach (var user in users)
+                    {
+                        <li>
+                            <a href="/user/@user.Id" class="user-row" target="_blank">
+                                <img width="64" height="64" src="@user.UrlAvatar" alt="@user.Username" />
+                                <span>@user.Username</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        
+        </div>
+    </div>
+
+@code
+{
+
+    public List<UserDbo> users = [];
+    public bool IsLoading = false;
+
+    private async Task OnChangeHandlerAsync(ChangeEventArgs args)
+    {
+        var inputValue = (string?)args.Value;
+        if (!string.IsNullOrEmpty(inputValue))
+        {
+            IsLoading = true;
+            users = await info.GetUsers(inputValue) ?? [];
+            IsLoading = false;
+            await Task.Delay(1);
+        }
+        else
+            users = [];
+    }
+}

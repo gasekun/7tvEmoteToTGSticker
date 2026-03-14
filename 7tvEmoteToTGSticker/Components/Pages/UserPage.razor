@@ -1,0 +1,330 @@
+﻿@page "/user/{id}"
+
+@inject SevenTVInfoService SevenTvInfoService;
+@inject ConvertEmoteToStickerService converter
+@inject TwitchInfoService twitchInfoService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>@(user?.mainConnection.platformDisplayName ?? "User")</PageTitle>
+
+<style>
+    .no-js img.lazyload {
+        display: none;
+    }
+</style>
+<div class="container">
+    <div class="header" style="background: url(@twitchUser?.banner) center/cover no-repeat; position: relative;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 16px; background: #000000b0;">
+            <a href="https://twitch.tv/@twitchUser?.login">
+                <img src="@(twitchUser?.logo ?? user?.mainConnection.platformAvatarUrl ?? "https://static-cdn.jtvnw.net/user-default-pictures-uv/dbdc9198-def8-11e9-8681-784f43822e80-profile_image-300x300.png")"
+                     style="border-radius: 50%; border: 2px solid #373737;"
+                     width="80" height="80" />
+            </a>
+
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <h3 style="font-size: 1.1rem; font-weight: 600;">@(user?.mainConnection.platformDisplayName ?? "User")</h3>
+                @if (twitchUser?.chatColor != null)
+                {
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: @twitchUser.chatColor; flex-shrink: 0;"></span>
+                }
+                @if (twitchUser?.banned == true)
+                {
+                    <span class="badge badge-delete">Banned</span>
+                }
+                @if (twitchUser?.roles?.isPartner == true)
+                {
+                    <span class="badge badge-update">Partner</span>
+                }
+                @if (twitchUser?.roles?.isAffiliate == true)
+                {
+                    <span class="badge badge-view">Affiliate</span>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(twitchUser?.bio))
+            {
+                <p style="color: #888; font-size: 0.8rem; max-width: 480px; text-align: center;">@twitchUser.bio</p>
+            }
+
+            <div style="display: flex; gap: 24px; color: #aaa; font-size: 0.8rem;">
+                <span><strong style="color: white;">@twitchUser?.followers!.Value.ToString("N0")</strong> followers</span>
+                <span><strong style="color: white;">@twitchUser?.chatterCount!.Value.ToString("N0")</strong> chatting</span>
+                @if (twitchUser?.createdAt != default)
+                {
+                    <span>since <strong style="color: white;">@twitchUser.createdAt!.Value.ToString("MMM yyyy")</strong></span>
+                }
+            </div>
+
+            @if (twitchUser?.stream?.title != null)
+            {
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: red; flex-shrink: 0;"></span>
+                    <p style="color: #777; font-size: 0.75rem;">
+                        now stream — <span style="color: #888;">@twitchUser.lastBroadcast.title</span>
+                    </p>
+                </div>
+            }
+            else if (twitchUser?.lastBroadcast?.title != null)
+            {
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <p style="color: #777; font-size: 0.75rem;">
+                        last stream — <span style="color: #888;">@twitchUser.lastBroadcast.title</span>
+                    </p>
+                </div>
+            }
+        </div>
+    </div>
+    
+    <div class="block">
+        <div class="filter-grid">
+            <div class="form-group">
+                <div style="text-align: right; padding-bottom: 5px; color: #777;">
+                    Count emotes: @(emote_display?.Count())
+                </div>
+                <input type="text" id="search_login" name="search_login" placeholder="Search..." @oninput="@OnChangeHandler">
+                </div>
+            </div>
+
+            @if (emote_display == null)
+            {
+                <div style="display: flex; justify-content: center">
+                    <span class="loader-xl"></span>
+                </div>
+            }
+            else
+            {
+                @*                     <div class="container-emotes">
+                        <Virtualize ItemEmotes="emote_display.Chunk(12).ToList()" Context="chunk">
+                            <div class="row-emotes" style="@(chunk.Length < 12 ? "justify-content: left;" : "")">
+                                @foreach (var emote in chunk)
+                                {
+                                    <button class="emote-link"
+                                            @onclick="() => ShowModal(emote)">
+                                        <div class="emote-content">
+                                            <picture>
+                                                <source type="image/webp"
+                                                        srcset="@(emote.data.host.url)/@emote.data.host.files[0].static_name 96w, @(emote.data.host.url)/@emote.data.host.files[1].static_name 192w, @(emote.data.host.url)/@emote.data.host.files[2].static_name 288w, @(emote.data.host.url)/@emote.data.host.files[3].static_name 384w"
+                                                        sizes="95px"
+                                                        media="(min-width: 0px) and (prefers-reduced-motion: reduce)">
+                                                <source type="image/webp" srcset="@(emote.data.host.url)/@emote.data.host.files[0].name 96w, @(emote.data.host.url)/@emote.data.host.files[1].name 192w, @(emote.data.host.url)/@emote.data.host.files[2].name 288w, @(emote.data.host.url)/@emote.data.host.files[3].name 384w"
+                                                        sizes="95px" media="(min-width: 0px)">
+                                                <img style="animation-delay: -20ms;"
+                                                     class="loading-animation"
+                                                     src="@(emote.data.host.url)/@emote.data.host.files[0].static_name"
+                                                     alt="Description"
+                                                     loading="lazy"
+                                                     draggable="false">
+                                            </picture>
+                                            <p class="emote-name" title="@emote.name">@emote.name</p>
+                                        </div>
+                                    </button>
+                                }
+                            </div>
+                        </Virtualize>
+                    </div> *@
+                    
+                <div class="grid-emote">
+                    @foreach (var emote in emote_display)
+                    {
+                        <button class="emote-link" @onclick="() => ShowModal(emote)">
+                            <div class="emote-content" @key="emote.id">
+                                <picture>
+                                    @*                                    <source type="image/webp" srcset="@(emote.emote.images.First().url)"
+                                            sizes="95px" media="(min-width: 0px)"> *@
+                                    <img alt=""
+                                         src="empty_img.png"
+                                         data-src="@(emote.emote.images.First(item => item.url.Contains("2x.avif")).url)" class="lazyload"
+                                         draggable="false">
+                                </picture>
+                                <p class="emote-name" title="@emote.alias">@emote.alias</p>
+                            </div>
+                        </button>
+                    }
+                </div>
+            }
+
+
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>
+                    @(selectEmote?.alias ?? "")
+                    (<a href="https://7tv.app/emotes/@selectEmote?.id" target="_blank">@(selectEmote?.emote.defaultName ?? "")</a>)
+                </h2>
+                <button class="modal-close" @onclick="CloseModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="container">
+                    @if (selectEmote != null)
+                    {
+                        var img = selectEmote.emote.images.First(item => item.url.Contains("4x.avif"));
+                        <div style="display: flex; gap: 15px; align-items: center; justify-content: space-evenly;padding: 16px;">
+                            @*                             <div><img src="@(selectEmote.data.host.url)/1x.webp" alt=""></div>
+                            <div><img src="@(selectEmote.data.host.url)/2x.webp" alt=""></div> *@
+                            <div><img id="show-emote-img" src="@(img.url)" alt="" fetchpriority="high" width="@img.width" height="@img.height"></div>
+                            @*                          <div><img src="@(selectEmote.data.host.url)/4x.webp" alt=""></div> *@
+                        </div>
+                    }
+                    @if (HasError)
+                    {
+                        <div class="badge-delete">
+                            @ErrorMessage
+                        </div>
+                    }
+                    <button class="btn btn-primary" style="position: relative; left: 50%; transform: translate(-50%); width: 100%;"
+                            disabled="@IsCreated"
+                            @onclick="DownloadSticker">
+                        Download sticker
+                        <span class="loader"
+                              style="margin-left: 5px; display: @(IsCreated ? "inline-block" : "none")"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function BlazorDownloadFile(filename, contentType, data) {
+
+            const file = new File([data], filename, {type: contentType});
+            const exportUrl = URL.createObjectURL(file);
+
+            const a = document.createElement("a");
+            document.body.appendChild(a);
+            a.href = exportUrl;
+            a.download = filename;
+            a.target = "_self";
+            a.click();
+
+            URL.revokeObjectURL(exportUrl);
+            a.remove();
+        }
+
+        function CloseModal() {
+            const modal = document.getElementById("modal");
+            modal.classList.remove("show");
+        }
+
+        function ShowModal() {
+            const modal = document.getElementById("modal");
+            modal.classList.add("show");
+        }
+
+    </script>
+
+@code {
+    [Parameter] public string? Id { get; set; }
+
+    public User? user;
+    public TwitchUser? twitchUser;
+    public ItemEmote? selectEmote;
+    public List<ItemEmote>? emote_set = null;
+    public List<ItemEmote>? emote_display = null;
+
+    public bool IsCreated;
+    public bool HasError;
+    public string ErrorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id != null)
+        {
+            user = await SevenTvInfoService.GetUser(Id);
+            if (user?.mainConnection.platform == "TWITCH")
+            {
+                twitchUser = await twitchInfoService.GetTwitchUserById(user.mainConnection.platformId);
+            }
+            LoadEmotesAsync();
+        }
+    }
+
+    private async void LoadEmotesAsync()
+    {
+        try
+        {
+            if (user?.style.activeEmoteSet != null && Id != null)
+            {
+                emote_set = emote_display = await SevenTvInfoService.GetUserEmotes(Id);
+                this.StateHasChanged();
+            }
+            else
+            {
+                emote_set = emote_display = [];
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
+    }
+
+
+    private void OnChangeHandler(ChangeEventArgs args)
+    {
+        var inputValue = (string?)args.Value;
+
+        if (string.IsNullOrEmpty(inputValue))
+        {
+            emote_display = emote_set;
+        }
+        else
+        {
+            emote_display = null;
+            emote_display = emote_set?.Where(item => item.alias.Contains(inputValue)).ToList();
+        }
+
+        StateHasChanged();
+    }
+
+    public async void ShowModal(ItemEmote selectEmote)
+    {
+        this.selectEmote = selectEmote;
+        await JSRuntime.InvokeVoidAsync("ShowModal");
+    }
+
+    public async Task DownloadSticker()
+    {
+        if (selectEmote != null)
+        {
+            IsCreated = true;
+            ErrorMessage = string.Empty;
+            HasError = false;
+
+            await Task.Delay(1);
+
+            var data = await converter.GetStickerFromEmojiAsync(selectEmote.id);
+
+            if (!data.IsCreated)
+            {
+                IsCreated = false;
+                HasError = true;
+                ErrorMessage = data.ErrorMessage;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            var fileName = selectEmote.alias.ReplaceChars(Path.GetInvalidFileNameChars(), '_') + ".webm";
+            var contentType = "application/octet-stream";
+
+            await JSRuntime.InvokeVoidAsync("BlazorDownloadFile", fileName, contentType, data.Data);
+            await JSRuntime.InvokeVoidAsync("CloseModal");
+            IsCreated = false;
+        }
+    }
+
+    private async Task ChangeClass(string classLoad)
+    {
+        classLoad = "lazyload";
+    }
+
+    private async Task CloseModal()
+    {
+        selectEmote = null;
+        await JSRuntime.InvokeVoidAsync("CloseModal");
+        StateHasChanged();
+    }
+
+}
