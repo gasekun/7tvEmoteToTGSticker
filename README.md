@@ -60,9 +60,8 @@ The application will start at `https://localhost:5001` (or `http://localhost:500
 │       └── UserPage.razor          # User profile & emote display
 ├── Models/
 │   ├── UserDbo.cs                  # User data object
-│   ├── User.cs                     # 7TV user model
-│   ├── ItemEmote.cs                # Emote model
-│   ├── StickResult.cs              # Conversion result
+│   ├── SevenTVModel/               # 7TV user model
+│   ├── GlobalSearchModel/          # 7TV search user model
 │   └── TwitchModel/                # Twitch-related models
 ├── Services/
 │   ├── SevenTVInfoService.cs       # 7TV GraphQL queries
