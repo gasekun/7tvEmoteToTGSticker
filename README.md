@@ -141,23 +141,6 @@ The application includes comprehensive error handling:
 - ✅ Graceful fallbacks for missing data
 - ✅ User-friendly error messages
 
-## Troubleshooting
-
-### FFmpeg Not Found
-- **Windows**: Install [FFmpeg](https://ffmpeg.org/download.html) and add to PATH
-- **Linux**: `sudo apt-get install ffmpeg`
-- **macOS**: `brew install ffmpeg`
-
-### WebP Conversion Fails
-- Ensure FFmpeg is properly installed
-- Check file permissions in temp directory
-- Verify the emote URL is accessible
-
-### Empty Results
-- Try a different search query
-- Verify 7TV API is accessible: https://7tv.io/v4/gql
-- Check browser console for errors
-
 ## Dependencies
 
 | Package | Version | Purpose |
@@ -203,4 +186,4 @@ This tool is for personal use. Ensure you have the rights to convert and use emo
 **Status**: Active Development  
 **.NET Version**: 10.0  
 **C# Version**: 14.0  
-**Last Updated**: 2024
+**Last Updated**: 2026
